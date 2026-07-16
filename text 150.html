@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alexandra Shopping Stock Track & Savings</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  :root{
+    --navy:#131921;--navy2:#232f3e;--orange:#ff9900;--orange-hover:#e88a00;
+    --bg:#f3f3f3;--white:#fff;--border:#ddd;--text:#0f1111;--muted:#565959;
+    --link:#007185;--link-hover:#c7511f;--green:#067D62;--red:#cc0c39;--amber:#c45500;--purple:#6d28d9;--blue:#0051a8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',Arial,sans-serif;font-size:14px;min-height:100vh;}
+  
+  /* Auth Screen Layout */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy2);padding:20px;}
+  .login-card{background:var(--white);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);width:100%;max-width:380px;padding:30px;}
+  .login-brand{font-size:20px;font-weight:700;text-align:center;margin-bottom:24px;color:var(--navy);}
+  .login-brand span{color:var(--orange);}
+
+  /* Main Dashboard Layout App Structs */
+  #app-wrapper{display:none;} /* Hidden until logged in */
+  .top-nav{background:var(--navy);height:60px;display:flex;align-items:center;padding:0 20px;gap:20px;position:sticky;top:0;z-index:100;}
+  .logo{color:#fff;font-size:17px;font-weight:700;white-space:nowrap;}.logo span{color:var(--orange);}
+  .nav-search{flex:1;display:flex;max-width:600px;}
+  .nav-search input{flex:1;border:none;border-radius:4px 0 0 4px;padding:8px 12px;font-size:14px;outline:none;}
+  .nav-search button{background:var(--orange);border:none;border-radius:0 4px 4px 0;padding:0 14px;cursor:pointer;font-size:16px;}
+  .nav-search button:hover{background:var(--orange-hover);}
+  .sub-nav{background:var(--navy2);display:flex;align-items:center;padding:0 20px;height:38px;gap:4px;overflow-x:auto;}
+  .sub-nav-btn{color:#fff;background:transparent;border:1px solid transparent;border-radius:2px;padding:4px 12px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .sub-nav-btn:hover{border-color:#fff;}.sub-nav-btn.active{border-color:#fff;font-weight:600;}
+  .logout-btn{margin-left:auto;color:#ff9900;border:1px solid #ff9900;}
+  .logout-btn:hover{background:rgba(255,153,0,0.1);color:#fff;}
+  
+  main{padding:16px 20px;max-width:1200px;margin:0 auto;}
+  .page{display:none;}.page.active{display:block;}
+  .breadcrumb{font-size:12px;color:var(--muted);margin-bottom:12px;}
+  .breadcrumb span{color:var(--link);cursor:pointer;}.breadcrumb span:hover{color:var(--link-hover);text-decoration:underline;}
+  
+  /* Stats Grid Dynamic spacing update */
+  .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+  .stat-card{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.06);}
+  .stat-label{font-size:11px;color:var(--muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stat-value{font-size:16px;font-weight:700;}
+  .stat-value.green{color:var(--green);}.stat-value.red{color:var(--red);}.stat-value.amber{color:var(--amber);}.stat-value.blue{color:var(--blue);}
+  
+  .alert-bar{background:#fffbe6;border:1px solid #f0c040;border-left:4px solid var(--orange);border-radius:4px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--amber);display:none;}
+  .alert-bar.visible{display:block;}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .section-title{font-size:17px;font-weight:700;}
+  
+  .btn{padding:6px 13px;border-radius:3px;border:1px solid;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;justify-content:center;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:linear-gradient(to bottom,#f7dfa5,#f0c14b);border-color:#a88734 #9c7e31 #846a29;color:#111;}
+  .btn-primary:hover{background:linear-gradient(to bottom,#f5d78e,#eeb933);}
+  .btn-success{background:linear-gradient(to bottom,#5dbf8a,#4cae7a);border-color:#3d8f64;color:#fff;}
+  .btn-success:hover{background:linear-gradient(to bottom,#4cae7a,#3d9e6a);}
+  .btn-ghost{background:#fff;border-color:#adb1b8 #a2a6ac #8d9096;color:var(--text);}
+  .btn-ghost:hover{background:#f7f8f8;}
+  .btn-danger{background:#fff;border-color:#adb1b8;color:var(--red);}
+  .btn-danger:hover{background:#fce8e8;border-color:var(--red);}
+  .btn-edit{background:#fff;border-color:#adb1b8;color:var(--link);}
+  .btn-edit:hover{background:#e8f4f8;border-color:var(--link);}
+  .btn-purple{background:linear-gradient(to bottom,#a78bfa,#7c3aed);border-color:#5b21b6;color:#fff;}
+  .btn-purple:hover{opacity:.9;}
+  .btn-blue{background:linear-gradient(to bottom,#60a5fa,#2563eb);border-color:#1d4ed8;color:#fff;}
+  .btn-blue:hover{opacity:.9;}
+  .btn-sm{padding:4px 9px;font-size:11px;}
+  .btn-lg{padding:8px 18px;font-size:13px;height:38px;}
+  .card{background:var(--white);border:1px solid var(--border);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.06);overflow:hidden;}
+  
+  table{width:100%;border-collapse:collapse;}
+  thead th{background:#f0f2f2;border-bottom:1px solid var(--border);padding:9px 12px;font-size:11px;font-weight:600;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.4px;}
+  tbody tr{border-top:1px solid #ebebeb;transition:background .08s;}
+  tbody tr:hover{background:#f6f6f6;}
+  td{padding:9px 12px;font-size:13px;vertical-align:middle;}
+  .actions-cell{display:flex;gap:5px;flex-wrap:wrap;}
+  .badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600;}
+  .badge-green{background:#e6f4ea;color:var(--green);}.badge-amber{background:#fff3e0;color:var(--amber);}.badge-red{background:#fce8e8;color:var(--red);}.badge-purple{background:#ede9fe;color:var(--purple);}.badge-blue{background:#eff6ff;color:var(--blue);}
+  
+  .form-wrap{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.06);}
+  .form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  .form-row .field{flex:1;min-width:120px;margin:0;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;}
+  .field input,.field select,.field textarea{width:100%;background:#fff;border:1px solid #adb1b8;border-radius:3px;color:var(--text);font-family:inherit;font-size:13px;padding:7px 9px;outline:none;box-shadow:0 1px 2px rgba(0,0,0,.07) inset;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:#e77600;box-shadow:0 0 0 3px rgba(228,121,17,.2),0 1px 2px rgba(0,0,0,.07) inset;}
+  .msg{font-size:12px;margin-top:6px;display:none;}
+  .msg.ok{color:var(--green);}.msg.err{color:var(--red);}
+  
+  /* Savings Goal Progress Bars & Grid Layout */
+  .goals-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;margin-bottom:20px;}
+  .goal-card{background:var(--white);border:1px solid var(--border);border-radius:6px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .goal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .goal-title{font-size:15px;font-weight:700;color:var(--navy);}
+  .progress-container{background:#e5e7eb;border-radius:10px;height:10px;width:100%;overflow:hidden;margin:10px 0;}
+  .progress-bar{background:linear-gradient(90deg, #3b82f6, #2563eb);height:100%;border-radius:10px;transition:width 0.4s ease;}
+  .goal-metrics{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:12px;}
+  
+  .backup-box{background:#fcfcfc;border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+  .backup-info{font-size:12px;color:var(--muted);max-width:60%;}
+  .backup-actions{display:flex;gap:8px;align-items:center;}
+  
+  /* Report Summary */
+  .report-print-area{background:#fff;padding:30px;border:1px solid var(--border);border-radius:4px;margin-top:15px;}
+  .report-header-doc{display:none;border-bottom:3px double var(--text);padding-bottom:15px;margin-bottom:20px;}
+  .report-header-doc h1{font-size:22px;text-transform:uppercase;margin-bottom:5px;}
+  .report-header-doc p{font-size:12px;color:var(--muted);}
+  .report-grid-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:25px;}
+  .report-grid-card{border:1px solid var(--border);padding:12px;border-radius:4px;background:#fcfcfc;}
+  .report-section-title{font-size:14px;text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin:20px 0 8px 0;padding-bottom:5px;border-bottom:1px solid var(--border);}
+
+  /* Modals */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--white);border:1px solid var(--border);border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.18);width:480px;max-width:95vw;overflow:hidden;}
+  .modal-sm{width:360px;}
+  .modal-header{background:linear-gradient(to bottom,#f7f8f8,#e8e9e9);border-bottom:1px solid var(--border);padding:11px 16px;}
+  .modal-header h2{font-size:15px;font-weight:700;}
+  .modal-body{padding:16px;}
+  .modal-footer{background:#f7f8f8;border-top:1px solid var(--border);padding:11px 16px;display:flex;gap:8px;justify-content:flex-end;}
+  
+  /* Calendar */
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .cal-nav{display:flex;align-items:center;gap:10px;}
+  .cal-nav button{background:var(--white);border:1px solid var(--border);border-radius:3px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  .cal-nav button:hover{background:#f0f2f2;}
+  .cal-month-label{font-size:15px;font-weight:700;min-width:150px;text-align:center;}
+  .cal-grid{background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:#f0f2f2;border-bottom:1px solid var(--border);}
+  .cal-weekday{padding:7px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal-day{min-height:84px;border-right:1px solid #ebebeb;border-bottom:1px solid #ebebeb;padding:5px 6px;cursor:pointer;transition:background .1s;}
+  .cal-day:nth-child(7n){border-right:none;}
+  .cal-day.empty-day{background:#fafafa;cursor:default;}
+  .cal-day.today{background:#fffbf0;}
+  .cal-day:not(.empty-day):hover{background:#f0f7ff;}
+  .cal-day-num{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px;}
+  .cal-pill{border-radius:3px;padding:2px 5px;margin-top:2px;font-size:11px;}
+  .cal-pill-sales{background:#e6f4ea;border:1px solid #b2d8b8;}.cal-pill-sales .pv{color:var(--green);font-weight:700;}
+  .cal-pill-exp{background:#fce8e8;border:1px solid #f5b8b8;}.cal-pill-exp .pv{color:var(--red);font-weight:700;}
+  .cal-month-total{background:var(--white);border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .cal-tot-item{text-align:center;}.cal-tot-label{font-size:11px;color:var(--muted);margin-bottom:4px;}.cal-tot-val{font-size:15px;font-weight:700;}
+  .tabs{display:flex;margin-bottom:14px;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--white);}
+  .tab-btn{flex:1;padding:8px;background:transparent;border:none;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);}
+  .tab-btn.active{background:var(--navy2);color:#fff;}
+  .empty{text-align:center;padding:36px 20px;color:var(--muted);}.empty-icon{font-size:30px;margin-bottom:8px;}
+  
+  @media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr);}.cal-day{min-height:56px;}.cal-month-total{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">Alexandra <span>Shopping</span></div>
+    <div style="margin-bottom: 15px; text-align: center; color: var(--muted); font-size: 13px;">Please log in to access stock listings.</div>
+    
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Enter username" onkeydown="if(event.key==='Enter')handleLogin()">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••" onkeydown="if(event.key==='Enter')handleLogin()">
+    </div>
+    
+    <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;" onclick="handleLogin()">Login Gateway</button>
+    <div id="login-err-msg" style="color: var(--red); text-align: center; font-size: 12px; margin-top: 12px; display: none;">Invalid credentials. Try again.</div>
+  </div>
+</div>
+
+<div id="app-wrapper">
+  <div class="top-nav">
+    <div class="logo">Alexandra <span>Shopping</span> Stock & Savings</div>
+    <div class="nav-search"><input type="text" placeholder="Search products..."><button>🔍</button></div>
+  </div>
+  <div class="sub-nav">
+    <button class="sub-nav-btn active" onclick="showPage(&#39;dashboard&#39;,this)">Dashboard</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;inventory&#39;,this)">Inventory</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;sales&#39;,this)">Sales</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;expenditure&#39;,this)">💸 Expenditure</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;savings&#39;,this)">🐷 Savings Vault</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;calendar&#39;,this)">📅 Calendar</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;history&#39;,this)">History</button>
+    <button class="sub-nav-btn" onclick="showPage(&#39;reports&#39;,this)">📋 Final PDF Report</button>
+    <button class="sub-nav-btn logout-btn" onclick="handleLogout()">🔒 Logout</button>
+  </div>
+
+  <main>
+    <div id="page-dashboard" class="page active">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Dashboard</div>
+      
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; align-items: stretch;">
+        <div class="backup-box" style="margin-bottom:0;">
+          <div class="backup-info">
+            <strong>Data Safety Backup:</strong> Download or restore full logs, savings sheets, and active stock configurations securely.
+          </div>
+          <div class="backup-actions">
+            <button class="btn btn-ghost btn-sm" onclick="exportDataBackup()">💾 Download Backup</button>
+            <button class="btn btn-edit btn-sm" onclick="document.getElementById(&#39;import-file-picker&#39;).click()">📤 Restore</button>
+            <input type="file" id="import-file-picker" accept=".json" style="display:none" onchange="importDataBackup(event)">
+          </div>
+        </div>
+
+        <div class="card" style="padding:12px 16px; background:#fafafa; border-style: dashed; display:flex; flex-direction:column; justify-content:center;">
+          <div style="font-weight:700; font-size:12px; margin-bottom:6px; color:var(--navy);">⚙️ Edit Admin Gateway Details</div>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="change-user" placeholder="New User" style="padding:4px 6px; font-size:11px; width:45%; border:1px solid #ccc; border-radius:3px;">
+            <input type="password" id="change-pass" placeholder="New Pass" style="padding:4px 6px; font-size:11px; width:45%; border:1px solid #ccc; border-radius:3px;">
+            <button class="btn btn-primary btn-sm" onclick="updateSystemCredentials()" style="padding:2px 6px;">Save</button>
+          </div>
+          <div id="cred-msg" style="font-size:10px; font-weight:600; margin-top:4px; display:none;"></div>
+        </div>
+      </div>
+
+      <div class="stats-row" id="stats-row"></div>
+      <div class="alert-bar" id="low-stock-alert"></div>
+      
+      <div class="section-header"><span class="section-title">Stock Overview</span></div>
+      <div class="card"><table>
+        <thead><tr><th>Product</th><th>Category</th><th>In Stock</th><th>Base Price</th><th>Status</th></tr></thead>
+        <tbody id="dashboard-tbody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="page-inventory" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Inventory</div>
+      <div class="section-header">
+        <span class="section-title">Manage Inventory</span>
+        <button class="btn btn-primary btn-lg" onclick="openProductModal()">+ Add Product</button>
+      </div>
+      <div class="card"><table>
+        <thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Base Price</th><th>Low At</th><th>Actions</th></tr></thead>
+        <tbody id="inventory-tbody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="page-sales" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Sales</div>
+      <div class="form-wrap">
+        <div class="section-title" style="font-size:14px;margin-bottom:12px">Record a Sale (Negotiable Pricing)</div>
+        <div class="form-row">
+          <div class="field"><label>Product</label><select id="sale-product" onchange="updateNegotiatedPriceField()"></select></div>
+          <div class="field" style="max-width:110px"><label>Quantity</label><input type="number" id="sale-qty" placeholder="Qty" min="1"></div>
+          <div class="field" style="max-width:140px"><label>Price/Unit (CFA)</label><input type="number" id="sale-negotiated-price" placeholder="Negotiated Price" min="0"></div>
+          <div class="field" style="max-width:170px"><label>Date & Time</label><input type="datetime-local" id="sale-date"></div>
+          <button class="btn btn-success btn-lg" onclick="recordSale()">Sell</button>
+        </div>
+        <div id="sale-error" class="msg err"></div><div id="sale-ok" class="msg ok"></div>
+      </div>
+      <div class="section-header"><span class="section-title">Today's Sales</span></div>
+      <div class="card"><table>
+        <thead><tr><th>Product</th><th>Qty</th><th>Sold Price/Unit</th><th>Revenue</th><th>Time</th><th>Actions</th></tr></thead>
+        <tbody id="sales-tbody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="page-expenditure" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Expenditure</div>
+      <div class="form-wrap">
+        <div class="section-title" style="font-size:14px;margin-bottom:12px">Add Expenditure</div>
+        <div class="form-row">
+          <div class="field" style="flex:2"><label>Description</label><input type="text" id="exp-desc" placeholder="e.g. Supplier payment"></div>
+          <div class="field"><label>Amount (CFA)</label><input type="number" id="exp-amount" placeholder="e.g. 5000" min="1"></div>
+          <div class="field"><label>Category</label>
+            <select id="exp-cat">
+              <option>Supplier / Restocking</option><option>Rent / Utilities</option>
+              <option>Salaries</option><option>Transport</option><option>Packaging</option><option>Other</option>
+            </select>
+          </div>
+          <div class="field" style="max-width:180px"><label>Date & Time</label><input type="datetime-local" id="exp-date"></div>
+          <button class="btn btn-purple btn-lg" onclick="addExpenditure()">Add</button>
+        </div>
+        <div id="exp-error" class="msg err"></div><div id="exp-ok" class="msg ok"></div>
+      </div>
+      <div class="section-header"><span class="section-title">All Expenditures</span></div>
+      <div class="card"><table>
+        <thead><tr><th>Date &amp; Time</th><th>Description</th><th>Category</th><th>Amount</th><th>Actions</th></tr></thead>
+        <tbody id="exp-tbody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="page-savings" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Savings Vault</div>
+      
+      <div class="form-wrap">
+        <div class="section-title" style="font-size:14px; margin-bottom:12px;">Create New Savings Goal</div>
+        <div class="form-row">
+          <div class="field" style="flex:2;"><label>Goal / Purpose Name</label><input type="text" id="save-goal-name" placeholder="e.g. Emergency Cash Reserve, Shop Renovation"></div>
+          <div class="field"><label>Target Amount (CFA)</label><input type="number" id="save-goal-target" placeholder="e.g. 500000" min="1"></div>
+          <button class="btn btn-blue btn-lg" onclick="createNewSavingsGoal()">Initialize Vault Pool</button>
+        </div>
+      </div>
+
+      <div class="section-header"><span class="section-title">Active Target Savings Pools</span></div>
+      <div class="goals-grid" id="savings-goals-grid"></div>
+
+      <div class="section-header" style="margin-top:20px;"><span class="section-title">Savings Deposit & Allocation History</span></div>
+      <div class="card"><table>
+        <thead><tr><th>Timestamp</th><th>Savings Pool</th><th>Type Allocation</th><th>Amount Allocation</th></tr></thead>
+        <tbody id="savings-history-tbody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="page-calendar" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Calendar</div>
+      <div class="cal-header">
+        <span class="section-title">Sales Calendar</span>
+        <div class="cal-nav">
+          <button onclick="calPrev()">‹</button>
+          <div class="cal-month-label" id="cal-month-label"></div>
+          <button onclick="calNext()">›</button>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-weekdays">
+          <div class="cal-weekday">Sun</div><div class="cal-weekday">Mon</div><div class="cal-weekday">Tue</div>
+          <div class="cal-weekday">Wed</div><div class="cal-weekday">Thu</div><div class="cal-weekday">Fri</div><div class="cal-weekday">Sat</div>
+        </div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+      <div class="cal-month-total" id="cal-month-total"></div>
+    </div>
+
+    <div id="page-history" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › History</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchHistoryTab(&#39;sales-hist&#39;,this)">Sales</button>
+        <button class="tab-btn" onclick="switchHistoryTab(&#39;exp-hist&#39;,this)">Expenditures</button>
+      </div>
+      <div id="sales-hist">
+        <div class="section-header"><span class="section-title">All Sales</span><button class="btn btn-ghost" onclick="clearSalesHistory()">Clear All</button></div>
+        <div class="card"><table>
+          <thead><tr><th>Date &amp; Time</th><th>Product</th><th>Qty</th><th>Sold Price/Unit</th><th>Revenue</th><th>Actions</th></tr></thead>
+          <tbody id="history-tbody"></tbody>
+        </table></div>
+      </div>
+      <div id="exp-hist" style="display:none">
+        <div class="section-header"><span class="section-title">All Expenditures</span><button class="btn btn-ghost" onclick="clearExpHistory()">Clear All</button></div>
+        <div class="card"><table>
+          <thead><tr><th>Date &amp; Time</th><th>Description</th><th>Category Tag</th><th>Amount</th><th>Actions</th></tr></thead>
+          <tbody id="exp-history-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div id="page-reports" class="page">
+      <div class="breadcrumb"><span onclick="nav0()">Home</span> › Compiled Reports</div>
+      <div class="form-wrap">
+        <div class="section-title" style="font-size:14px;margin-bottom:12px">Configure Compilation Filter</div>
+        <div class="form-row">
+          <div class="field"><label>Start Date</label><input type="date" id="rep-start-date"></div>
+          <div class="field"><label>End Date</label><input type="date" id="rep-end-date"></div>
+          <button class="btn btn-primary btn-lg" onclick="generateCompiledReport()">📊 Compile Data</button>
+          <button class="btn btn-success btn-lg" onclick="window.print()">🖨️ Export PDF Report</button>
+        </div>
+      </div>
+
+      <div class="report-print-area" id="report-view-container">
+        <div class="report-header-doc">
+          <h1 id="print-doc-title">Alexandra Shopping Stock Report</h1>
+          <p id="print-doc-duration">Report range: Full Historical Ledger</p>
+          <p style="font-size:10px; margin-top:2px;">Generated on: <span id="print-doc-timestamp"></span></p>
+        </div>
+        <div class="report-section-title" style="margin-top:0;">Financial Summary</div>
+        <div id="rep-grid-boxes"></div>
+        
+        <div class="report-section-title">Active Savings Pools Status</div>
+        <div class="card" style="margin-bottom:20px;"><table>
+          <thead><tr><th>Savings Pool Vault</th><th>Current Allocation</th><th>Target Financial Objective</th><th>Progress Achieved</th></tr></thead>
+          <tbody id="rep-table-savings-pools"></tbody>
+        </table></div>
+
+        <div class="report-section-title">Product Performance Listings</div>
+        <div class="card" style="margin-bottom:20px;"><table>
+          <thead><tr><th>Item Description</th><th>Units Sold</th><th>Revenue Generated</th></tr></thead>
+          <tbody id="rep-table-products"></tbody>
+        </table></div>
+        
+        <div class="report-section-title">Detailed Sales Breakdown Log</div>
+        <div class="card" style="margin-bottom:20px;"><table>
+          <thead><tr><th>Timestamp</th><th>Product Name</th><th>Qty Sold</th><th>Negotiated Cost</th><th>Total Rev</th></tr></thead>
+          <tbody id="rep-table-sales-log"></tbody>
+        </table></div>
+
+        <div class="report-section-title">Detailed Savings Transaction Log</div>
+        <div class="card" style="margin-bottom:20px;"><table>
+          <thead><tr><th>Timestamp</th><th>Savings Pool Title</th><th>Transaction Type</th><th>Allocated Amount</th></tr></thead>
+          <tbody id="rep-table-savings-log"></tbody>
+        </table></div>
+        
+        <div class="report-section-title">Detailed Expenditure Breakdown Log</div>
+        <div class="card"><table>
+          <thead><tr><th>Timestamp</th><th>Description</th><th>Category Tag</th><th>Total Amount</th></tr></thead>
+          <tbody id="rep-table-exp-log"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header"><h2 id="prod-modal-title">Add Product</h2></div>
+    <div class="modal-body">
+      <div class="field"><label>Product Name</label><input type="text" id="p-name"></div>
+      <div class="field"><label>Category</label><input type="text" id="p-cat"></div>
+      <div class="field"><label>Stock Quantity</label><input type="number" id="p-stock" min="0"></div>
+      <div class="field"><label>Base Price (CFA)</label><input type="number" id="p-price" min="0"></div>
+      <div class="field"><label>Low Stock Threshold</label><input type="number" id="p-low" min="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM(&&#39;product-modal&#39;)">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="savings-action-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h2 id="savings-modal-title">Fund Vault Goal</h2></div>
+    <div class="modal-body">
+      <input type="hidden" id="savings-target-id">
+      <input type="hidden" id="savings-target-action">
+      <div class="field">
+        <label id="savings-modal-label">Amount (CFA)</label>
+        <input type="number" id="savings-action-amount" min="1" placeholder="e.g. 10000">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM(&&#39;savings-action-modal&#39;)">Cancel</button>
+      <button class="btn btn-blue" id="savings-modal-submit-btn" onclick="executeSavingsTransaction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Authentication Engine Core Keys
+let systemConfig = JSON.parse(localStorage.getItem('st_config') || '{"user":"Admin","pass":"1234"}');
+
+// Standard Application Database Contexts & Savings Integration
+let products     = JSON.parse(localStorage.getItem('st_products')     || '[]');
+let sales        = JSON.parse(localStorage.getItem('st_sales')        || '[]');
+let expenditures = JSON.parse(localStorage.getItem('st_expenditures') || '[]');
+let savingsGoals = JSON.parse(localStorage.getItem('st_savings_goals') || '[]');
+let savingsLogs  = JSON.parse(localStorage.getItem('st_savings_logs')  || '[]');
+
+let editingProdId=null, calYear, calMonth;
+(function(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();})();
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function save(){
+  localStorage.setItem('st_products',JSON.stringify(products));
+  localStorage.setItem('st_sales',JSON.stringify(sales));
+  localStorage.setItem('st_expenditures',JSON.stringify(expenditures));
+  localStorage.setItem('st_savings_goals',JSON.stringify(savingsGoals));
+  localStorage.setItem('st_savings_logs',JSON.stringify(savingsLogs));
+}
+
+// Security Gateway Handlers
+function handleLogin() {
+  const uInput = document.getElementById('login-user').value.trim();
+  const pInput = document.getElementById('login-pass').value.trim();
+  
+  if (uInput === systemConfig.user && pInput === systemConfig.pass) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-wrapper').style.display = 'block';
+    document.getElementById('login-err-msg').style.display = 'none';
+    renderDashboard();
+  } else {
+    document.getElementById('login-err-msg').style.display = 'block';
+  }
+}
+
+function handleLogout() {
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('app-wrapper').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function updateSystemCredentials() {
+  const newUser = document.getElementById('change-user').value.trim();
+  const newPass = document.getElementById('change-pass').value.trim();
+  const feedback = document.getElementById('cred-msg');
+  
+  if(!newUser || !newPass) {
+    feedback.textContent = "Error: Fields blank.";
+    feedback.style.color = "var(--red)"; feedback.style.display = "block";
+    return;
+  }
+  systemConfig.user = newUser; systemConfig.pass = newPass;
+  localStorage.setItem('st_config', JSON.stringify(systemConfig));
+  
+  feedback.textContent = "Credentials Updated!";
+  feedback.style.color = "var(--green)"; feedback.style.display = "block";
+  document.getElementById('change-user').value = '';
+  document.getElementById('change-pass').value = '';
+  setTimeout(() => feedback.style.display = 'none', 3000);
+}
+
+// Native Core Application Logic Loops
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function cfa(n){return Number(n).toLocaleString('fr-FR')+' CFA';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function isToday(iso){const d=new Date(iso),t=new Date();return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate();}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function fmtDate(iso){return new Date(iso).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function nav0(){showPage('dashboard',document.querySelectorAll('.sub-nav-btn')[0]);}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+function openM(id){document.getElementById(id).classList.add('open');}
+function showMsg(id,msg,isOk){const el=document.getElementById(id);el.textContent=msg;el.className='msg '+(isOk?'ok':'err');el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
+
+function initializeDateInputs() {
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  const localISOTime = now.toISOString().slice(0, 16);
+  if(document.getElementById('sale-date')) document.getElementById('sale-date').value = localISOTime;
+  if(document.getElementById('exp-date')) document.getElementById('exp-date').value = localISOTime;
+}
+
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sub-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(name === 'sales' || name === 'expenditure') initializeDateInputs();
+  ({
+    dashboard: renderDashboard,
+    inventory: renderInventory,
+    sales: populateSalesPage,
+    expenditure: renderExpenditurePage,
+    savings: renderSavingsPage,
+    calendar: renderCalendar,
+    history: renderHistory,
+    reports: generateCompiledReport
+  })[name]?.();
+}
+
+function renderDashboard(){
+  const totalStock=products.reduce((s,p)=>s+p.stock,0);
+  const todayRev=sales.filter(s=>isToday(s.time)).reduce((s,x)=>s+x.total,0);
+  const todayExp=expenditures.filter(e=>isToday(e.time)).reduce((s,e)=>s+e.amount,0);
+  const allRev=sales.reduce((s,x)=>s+x.total,0);
+  const allExp=expenditures.reduce((s,e)=>s+e.amount,0);
+  const totalSaved=savingsGoals.reduce((s,g)=>s+g.current,0);
+  
+  const net=allRev-allExp-totalSaved;
+  const out=products.filter(p=>p.stock===0);
+  const low=products.filter(p=>p.stock<=p.lowAt&&p.stock>0);
+  
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Products Listed</div><div class="stat-value">${products.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Today Revenue</div><div class="stat-value green">${cfa(todayRev)}</div></div>
+    <div class="stat-card"><div class="stat-label">Today Expenses</div><div class="stat-value red">${cfa(todayExp)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Saved Vault</div><div class="stat-value blue">${cfa(totalSaved)}</div></div>
+    <div class="stat-card"><div class="stat-label">Net Liquid Cash</div><div class="stat-value ${net>=0?'green':'red'}">${cfa(net)}</div></div>
+    <div class="stat-card"><div class="stat-label">Out of Stock</div><div class="stat-value ${out.length>0?'red':'green'}">${out.length}</div></div>`;
+    
+  const al=document.getElementById('low-stock-alert');
+  if(low.length){al.innerHTML=`⚠️ <strong>Low stock warning:</strong> ${low.map(p=>esc(p.name)).join(', ')}`;al.classList.add('visible');}
+  else al.classList.remove('visible');
+  
+  const tb=document.getElementById('dashboard-tbody');
+  if(!products.length){tb.innerHTML=`<tr><td colspan="5"><div class="empty"><p>No stock listings exist.</p></div></td></tr>`;return;}
+  tb.innerHTML=products.map(p=>{
+    let st,bd;
+    if(p.stock===0){st='Out of Stock';bd='badge-red';}else if(p.stock<=p.lowAt){st='Low Stock';bd='badge-amber';}else{st='In Stock';bd='badge-green';}
+    return `<tr><td><strong>${esc(p.name)}</strong></td><td style="color:var(--muted)">${esc(p.category)}</td><td>${p.stock}</td><td>${cfa(p.price)}</td><td><span class="badge ${bd}">${st}</span></td></tr>`;
+  }).join('');
+}
+
+// INVENTORY
+function renderInventory(){
+  const tb=document.getElementById('inventory-tbody');
+  if(!products.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty"><p>No items inside active inventory schema.</p></div></td></tr>`;return;}
+  tb.innerHTML=products.map(p=>`
+    <tr>
+      <td><strong>${esc(p.name)}</strong></td><td style="color:var(--muted)">${esc(p.category)}</td>
+      <td style="color:${p.stock===0?'var(--red)':p.stock<=p.lowAt?'var(--amber)':'var(--green)'}"><strong>${p.stock}</strong></td>
+      <td>${cfa(p.price)}</td><td style="color:var(--muted)">${p.lowAt}</td>
+      <td><div class="actions-cell">
+        <button class="btn btn-ghost btn-sm" onclick="openProductModal('${p.id}')">✏ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑 Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ACTIONS MODAL HANDLERS
+function openProductModal(id){
+  editingProdId=id||null;
+  document.getElementById('prod-modal-title').textContent=id?'Edit Product Setup':'Create Product Listing';
+  if(id){
+    const p=products.find(x=>x.id===id);
+    document.getElementById('p-name').value=p.name;document.getElementById('p-cat').value=p.category;
+    document.getElementById('p-stock').value=p.stock;document.getElementById('p-price').value=p.price;document.getElementById('p-low').value=p.lowAt;
+  }else{['p-name','p-cat','p-stock','p-price','p-low'].forEach(i=>document.getElementById(i).value='');}
+  openM('product-modal');
+}
+
+function saveProduct(){
+  const name=document.getElementById('p-name').value.trim(),cat=document.getElementById('p-cat').value.trim();
+  const stock=parseInt(document.getElementById('p-stock').value),price=parseInt(document.getElementById('p-price').value),lowAt=parseInt(document.getElementById('p-low').value)||5;
+  if(!name||isNaN(stock)||isNaN(price))return alert('Required metrics configuration data missing.');
+  if(editingProdId)Object.assign(products.find(x=>x.id===editingProdId),{name,category:cat,stock,price,lowAt});
+  else products.push({id:uid(),name,category:cat,stock,price,lowAt});
+  save();closeM('product-modal');renderInventory();renderDashboard();
+}
+
+function deleteProduct(id){if(!confirm('Drop this product profile?'))return;products=products.filter(p=>p.id!==id);save();renderInventory();renderDashboard();}
+
+// SALES WITH NEGOTIABLE PRICING
+function populateSalesPage(){
+  const sel=document.getElementById('sale-product');
+  sel.innerHTML=products.map(p=>`<option value="${p.id}"${p.stock===0?' disabled':''}>${esc(p.name)} (${p.stock})</option>`).join('')||'<option value="">No options configured</option>';
+  updateNegotiatedPriceField();
+  renderSalesTable();
+}
+
+function updateNegotiatedPriceField() {
+  const pid = document.getElementById('sale-product').value;
+  const priceInput = document.getElementById('sale-negotiated-price');
+  if(pid) {
+    const p = products.find(x => x.id === pid);
+    if(p) priceInput.value = p.price;
+  } else {
+    priceInput.value = '';
+  }
+}
+
+function recordSale(){
+  const pid=document.getElementById('sale-product').value;
+  const qty=parseInt(document.getElementById('sale-qty').value);
+  const negotiatedPrice=parseInt(document.getElementById('sale-negotiated-price').value);
+  
+  if(!pid)return showMsg('sale-error','Select valid active product target.');
+  if(!qty||qty<1)return showMsg('sale-error','Define valid quantity.');
+  if(isNaN(negotiatedPrice)||negotiatedPrice<0)return showMsg('sale-error','Define a suitable negotiated price.');
+  
+  const p=products.find(x=>x.id===pid);
+  if(qty>p.stock)return showMsg('sale-error',`Shortage: Higher than requested.`);
+  
+  p.stock-=qty;
+  const customDate = document.getElementById('sale-date').value;
+  const entryTime = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+  
+  sales.push({id:uid(),pid,name:p.name,qty,price:negotiatedPrice,total:qty*negotiatedPrice,time:entryTime});
+  save();
+  showMsg('sale-ok',`✓ Documented Transaction.`);
+  document.getElementById('sale-qty').value='';
+  populateSalesPage();
+  renderDashboard();
+}
+
+function renderSalesTable(){
+  const today=sales.filter(s=>isToday(s.time));const tb=document.getElementById('sales-tbody');
+  if(!today.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty"><p>No commerce operations today.</p></div></td></tr>`;return;}
+  tb.innerHTML=[...today].reverse().map(s=>`
+    <tr>
+      <td><strong>${esc(s.name)}</strong></td><td>${s.qty}</td><td>${cfa(s.price)}</td><td style="color:var(--green);font-weight:600">${cfa(s.total)}</td><td style="color:var(--muted)">${fmtTime(s.time)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeSale('${s.id}')">🗑 Drop</button></td>
+    </tr>`).join('');
+}
+
+function removeSale(id){
+  if(!confirm('Void transactional record?'))return;const s=sales.find(x=>x.id===id);
+  if(s){const p=products.find(x=>x.id===s.pid);if(p)p.stock+=s.qty;}
+  sales=sales.filter(x=>x.id!==id);save();renderSalesTable();renderDashboard();
+}
+
+// EXPENDITURE
+function addExpenditure(){
+  const desc=document.getElementById('exp-desc').value.trim(),amount=parseInt(document.getElementById('exp-amount').value),cat=document.getElementById('exp-cat').value;
+  if(!desc||!amount||amount<1)return showMsg('exp-error','Verify metadata fields values.');
+  const customDate = document.getElementById('exp-date').value;
+  const entryTime = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+  expenditures.push({id:uid(),desc,amount,category:cat,time:entryTime});
+  save();showMsg('exp-ok',`✓ Outflow compiled.`);document.getElementById('exp-desc').value='';document.getElementById('exp-amount').value='';
+  renderExpenditurePage();renderDashboard();
+}
+
+function renderExpenditurePage(){
+  const tb=document.getElementById('exp-tbody');
+  if(!expenditures.length){tb.innerHTML=`<tr><td colspan="5"><div class="empty"><p>Clear of costs.</p></div></td></tr>`;return;}
+  tb.innerHTML=[...expenditures].reverse().map(e=>`
+    <tr><td>${fmtDate(e.time)}</td><td><strong>${esc(e.desc)}</strong></td><td><span class="badge badge-purple">${esc(e.category)}</span></td><td style="color:var(--red);font-weight:600">${cfa(e.amount)}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="removeExpenditure('${e.id}')">🗑</button></td></tr>`).join('');
+}
+function removeExpenditure(id){if(!confirm('Purge expense?'))return;expenditures=expenditures.filter(x=>x.id!==id);save();renderExpenditurePage();renderDashboard();}
+
+// SAVINGS MANAGEMENT BUSINESS LOGIC
+function createNewSavingsGoal() {
+  const name = document.getElementById('save-goal-name').value.trim();
+  const target = parseInt(document.getElementById('save-goal-target').value);
+  
+  if(!name || isNaN(target) || target <= 0) {
+    alert("Please fill out goal title and correct financial objective target."); return;
+  }
+  
+  savingsGoals.push({ id: uid(), name, target, current: 0 });
+  save();
+  document.getElementById('save-goal-name').value = '';
+  document.getElementById('save-goal-target').value = '';
+  renderSavingsPage();
+  renderDashboard();
+}
+
+function renderSavingsPage() {
+  const grid = document.getElementById('savings-goals-grid');
+  if(!savingsGoals.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column: 1/-1;"><p>No targeted savings vaults configured yet.</p></div>`;
+  } else {
+    grid.innerHTML = savingsGoals.map(g => {
+      const percent = Math.min(100, Math.round((g.current / g.target) * 100));
+      return `
+        <div class="goal-card">
+          <div class="goal-header">
+            <div class="goal-title">${esc(g.name)}</div>
+            <button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="deleteSavingsGoal('${g.id}')">🗑</button>
+          </div>
+          <div class="goal-metrics">
+            <span>Progress: <strong>${percent}%</strong></span>
+            <span>${cfa(g.current)} / ${cfa(g.target)}</span>
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar" style="width: ${percent}%;"></div>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:12px;">
+            <button class="btn btn-success btn-sm" style="flex:1;" onclick="openSavingsActionModal('${g.id}', 'deposit')">➕ Deposit</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="openSavingsActionModal('${g.id}', 'withdraw')">➖ Withdraw</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  const histTb = document.getElementById('savings-history-tbody');
+  if(!savingsLogs.length) {
+    histTb.innerHTML = `<tr><td colspan="4"><div class="empty">No savings ledger transfers tracked yet.</div></td></tr>`;
+  } else {
+    histTb.innerHTML = [...savingsLogs].reverse().map(l => `
+      <tr>
+        <td>${fmtDate(l.time)}</td>
+        <td><strong>${esc(l.goalName)}</strong></td>
+        <td><span class="badge ${l.type === 'deposit' ? 'badge-green' : 'badge-red'}">${l.type.toUpperCase()}</span></td>
+        <td style="font-weight:600; color:${l.type === 'deposit' ? 'var(--green)' : 'var(--red)'}">${l.type==='deposit'?'+':'-'} ${cfa(l.amount)}</td>
+      </tr>`).join('');
+  }
+}
+
+function openSavingsActionModal(id, action) {
+  const goal = savingsGoals.find(g => g.id === id);
+  if(!goal) return;
+  document.getElementById('savings-target-id').value = id;
+  document.getElementById('savings-target-action').value = action;
+  document.getElementById('savings-modal-title').textContent = action === 'deposit' ? `Deposit to: ${goal.name}` : `Withdraw from: ${goal.name}`;
+  document.getElementById('savings-action-amount').value = '';
+  openM('savings-action-modal');
+}
+
+function executeSavingsTransaction() {
+  const id = document.getElementById('savings-target-id').value;
+  const action = document.getElementById('savings-target-action').value;
+  const amount = parseInt(document.getElementById('savings-action-amount').value);
+  
+  if(isNaN(amount) || amount <= 0) return alert('Enter a valid currency allocation threshold.');
+  const goal = savingsGoals.find(g => g.id === id);
+  if(!goal) return;
+
+  if(action === 'withdraw' && amount > goal.current) {
+    return alert('Insufficient balance inside this targeted pool vault.');
+  }
+
+  if(action === 'deposit') {
+    const allRev = sales.reduce((s,x)=>s+x.total,0);
+    const allExp = expenditures.reduce((s,e)=>s+e.amount,0);
+    const totalSaved = savingsGoals.reduce((s,g)=>s+g.current,0);
+    const liquidCash = allRev - allExp - totalSaved;
+    if(amount > liquidCash) {
+      if(!confirm("Warning: Deposit exceeds liquid operational cash. Force allocation?")) return;
+    }
+    goal.current += amount;
+  } else {
+    goal.current -= amount;
+  }
+
+  savingsLogs.push({
+    id: uid(), goalId: id, goalName: goal.name, type: action, amount, time: new Date().toISOString()
+  });
+
+  save(); closeM('savings-action-modal'); renderSavingsPage(); renderDashboard();
+}
+
+function deleteSavingsGoal(id) {
+  if(!confirm("Are you sure you want to drop this savings goal? Active balance logs will be released back to liquid accounts.")) return;
+  savingsGoals = savingsGoals.filter(g => g.id !== id);
+  savingsLogs = savingsLogs.filter(l => l.goalId !== id);
+  save(); renderSavingsPage(); renderDashboard();
+}
+
+// CALENDAR
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+function renderCalendar(){
+  document.getElementById('cal-month-label').textContent=MONTHS[calMonth]+' '+calYear;
+  const sm={},em={};
+  sales.forEach(s=>{const d=new Date(s.time);if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!sm[k])sm[k]={total:0,txns:0};sm[k].total+=s.total;sm[k].txns++;}});
+  expenditures.forEach(e=>{const d=new Date(e.time);if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=d.getDate();if(!em[k])em[k]={total:0,count:0};em[k].total+=e.amount;em[k].count++;}});
+  const fd=new Date(calYear,calMonth,1).getDay(),dim=new Date(calYear,calMonth+1,0).getDate();
+  let html='';for(let i=0;i<fd;i++)html+=`<div class="cal-day empty-day"></div>`;
+  for(let d=1;d<=dim;d++){
+    let pills='';
+    if(sm[d])pills+=`<div class="cal-pill cal-pill-sales"><div class="pv">${cfa(sm[d].total)}</div></div>`;
+    if(em[d])pills+=`<div class="cal-pill cal-pill-exp"><div class="pv">-${cfa(em[d].total)}</div></div>`;
+    html+=`<div class="cal-day"><div class="cal-day-num">${d}</div>${pills}</div>`;
+  }
+  const rem=(fd+dim)%7;if(rem!==0)for(let i=0;i<7-rem;i++)html+=`<div class="cal-day empty-day"></div>`;
+  document.getElementById('cal-days').innerHTML=html;
+}
+
+function switchHistoryTab(tab,btn){
+  document.querySelectorAll('.tabs .tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('sales-hist').style.display=tab==='sales-hist'?'block':'none';document.getElementById('exp-hist').style.display=tab==='exp-hist'?'block':'none';
+}
+function renderHistory(){
+  const st=document.getElementById('history-tbody');
+  if(!sales.length)st.innerHTML=`<tr><td colspan="6">History dry.</td></tr>`;
+  else st.innerHTML=[...sales].reverse().map(s=>`<tr><td>${fmtDate(s.time)}</td><td><strong>${esc(s.name)}</strong></td><td>${s.qty}</td><td>${cfa(s.price)}</td><td style="color:var(--green);font-weight:600">${cfa(s.total)}</td><td><button class="btn btn-danger btn-sm" onclick="removeSale('${s.id}');renderHistory();">🗑</button></td></tr>`).join('');
+}
+
+// REPORTING ENGINE COMPILER
+function generateCompiledReport() {
+  document.getElementById('print-doc-timestamp').textContent = new Date().toLocaleString();
+  const startVal = document.getElementById('rep-start-date').value;
+  const endVal = document.getElementById('rep-end-date').value;
+  let startLimit = startVal ? new Date(startVal + 'T00:00:00') : null;
+  let endLimit = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+  const filteredSales = sales.filter(s => { const d = new Date(s.time); return !(startLimit && d < startLimit) && !(endLimit && d > endLimit); });
+  const filteredExp = expenditures.filter(e => { const d = new Date(e.time); return !(startLimit && d < startLimit) && !(endLimit && d > endLimit); });
+  const filteredSavings = savingsLogs.filter(l => { const d = new Date(l.time); return !(startLimit && d < startLimit) && !(endLimit && d > endLimit); });
+
+  const totalRev = filteredSales.reduce((sum, x) => sum + x.total, 0);
+  const totalExp = filteredExp.reduce((sum, x) => sum + x.amount, 0);
+  
+  // Calculate historical dynamic metrics for the filtered duration
+  const periodDeposits = filteredSavings.filter(l => l.type === 'deposit').reduce((sum, l) => sum + l.amount, 0);
+  const periodWithdrawals = filteredSavings.filter(l => l.type === 'withdraw').reduce((sum, l) => sum + l.amount, 0);
+  const netPeriodSavings = periodDeposits - periodWithdrawals;
+  const netProfit = totalRev - totalExp - netPeriodSavings;
+
+  document.getElementById('rep-grid-boxes').innerHTML = `
+    <div style="display:flex; gap:10px; margin-bottom:15px; width:100%; flex-wrap: wrap;">
+      <div class="report-grid-card" style="flex:1; min-width:140px;"><strong>Revenues</strong><div style="color:var(--green); font-weight:700;">${cfa(totalRev)}</div></div>
+      <div class="report-grid-card" style="flex:1; min-width:140px;"><strong>Expenditures</strong><div style="color:var(--red); font-weight:700;">-${cfa(totalExp)}</div></div>
+      <div class="report-grid-card" style="flex:1; min-width:140px;"><strong>Net Savings Delta</strong><div style="color:var(--blue); font-weight:700;">${cfa(netPeriodSavings)}</div></div>
+      <div class="report-grid-card" style="flex:1; min-width:140px;"><strong>Liquid Cash Pool</strong><div style="color:${netProfit >= 0 ? 'var(--green)' : 'var(--red)'}; font-weight:700;">${cfa(netProfit)}</div></div>
+    </div>`;
+
+  // Render Savings Pool Status Summary
+  document.getElementById('rep-table-savings-pools').innerHTML = savingsGoals.map(g => {
+    const percent = Math.min(100, Math.round((g.current / g.target) * 100));
+    return `<tr><td><strong>${esc(g.name)}</strong></td><td>${cfa(g.current)}</td><td>${cfa(g.target)}</td><td><span class="badge badge-blue">${percent}% Achieved</span></td></tr>`;
+  }).join('') || '<tr><td colspan="4">No active savings targets configured.</td></tr>';
+
+  // Render Savings Log History Matrix Filtered range
+  document.getElementById('rep-table-savings-log').innerHTML = [...filteredSavings].reverse().map(l => `
+    <tr>
+      <td>${fmtDate(l.time)}</td>
+      <td>${esc(l.goalName)}</td>
+      <td><span class="badge ${l.type === 'deposit' ? 'badge-green' : 'badge-red'}">${l.type.toUpperCase()}</span></td>
+      <td style="font-weight:600; color:${l.type === 'deposit' ? 'var(--green)' : 'var(--red)'}">${l.type==='deposit'?'+':'-'} ${cfa(l.amount)}</td>
+    </tr>`).join('') || '<tr><td colspan="4">No savings allocations matching timeframe parameters</td></tr>';
+
+  const productAgg = {};
+  filteredSales.forEach(s => {
+    if(!productAgg[s.name]) productAgg[s.name] = { qty: 0, total: 0 };
+    productAgg[s.name].qty += s.qty; productAgg[s.name].total += s.total;
+  });
+
+  document.getElementById('rep-table-products').innerHTML = Object.keys(productAgg).map(key => `<tr><td><strong>${esc(key)}</strong></td><td>${productAgg[key].qty} units</td><td>${cfa(productAgg[key].total)}</td></tr>`).join('') || '<tr><td colspan="3">Empty range metrics</td></tr>';
+  document.getElementById('rep-table-sales-log').innerHTML = [...filteredSales].reverse().map(s => `<tr><td>${fmtDate(s.time)}</td><td>${esc(s.name)}</td><td>${s.qty}</td><td>${cfa(s.price)}</td><td>${cfa(s.total)}</td></tr>`).join('') || '<tr><td colspan="5">No ledger logs matching sequence constraints</td></tr>';
+  document.getElementById('rep-table-exp-log').innerHTML = [...filteredExp].reverse().map(e => `<tr><td>${fmtDate(e.time)}</td><td>${esc(e.desc)}</td><td>${esc(e.category)}</td><td>${cfa(e.amount)}</td></tr>`).join('') || '<tr><td colspan="4">No cost structures match parameters</td></tr>';
+}
+
+function exportDataBackup() {
+  const blob = new Blob([JSON.stringify({ products, sales, expenditures, savingsGoals, savingsLogs }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.download = `Alex_Stock_Savings_Backup.json`; a.href = URL.createObjectURL(blob); a.click();
+}
+function importDataBackup(event) {
+  const f = event.target.files[0]; if (!f) return;
+  const reader = new FileReader(); reader.onload = function(e) {
+    const d = JSON.parse(e.target.result);
+    if(d.products && d.sales) { 
+      products=d.products; sales=d.sales; expenditures=d.expenditures||[]; 
+      savingsGoals=d.savingsGoals||[]; savingsLogs=d.savingsLogs||[];
+      save(); renderDashboard(); 
+    }
+  }; reader.readAsText(f);
+}
+
+// Populate samples default items
+if(!products.length){
+  products=[
+    {id:uid(),name:'Coca-Cola 500ml',category:'Beverages',stock:45,price:500,lowAt:10},
+    {id:uid(),name:'Spaghetti Package',category:'Dry Provisions',stock:12,price:700,lowAt:5}
+  ]; save();
+}
+</script>
+</body>
+</html>
